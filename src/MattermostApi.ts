@@ -1,54 +1,6 @@
 import axios from "axios";
-import {ERROR_COLOR, INFO_COLOR, SUCCESS_COLOR, WARNING_COLOR} from "./Colors";
-/*
-{
-    "id":"nmat3xf8ujg87bnozdhqm4hsme",
-    "create_at":1682595579704,
-    "update_at":1682595579704,
-    "edit_at":0,
-    "delete_at":0,
-    "is_pinned":false,
-    "user_id":"tt39cmornbrx3kdaoc66oe93gc",
-    "channel_id":"7ubygfbiobdzzmrqdhictzpkow",
-    "root_id":"",
-    "original_id":"",
-    "message":"This is a message from a bot",
-    "type":"",
-    "props":{
-        "attachments":[
-            {
-                "id":0,
-                "fallback":"",
-                "color":"",
-                "pretext":"Look some text",
-                "author_name":"",
-                "author_link":"",
-                "author_icon":"",
-                "title":"",
-                "title_link":"",
-                "text":"This is text",
-                "fields":null,
-                "image_url":"",
-                "thumb_url":"",
-                "footer":"",
-                "footer_icon":"",
-                "ts":null
-            }
-        ],
-        "from_bot":"true"
-    },
-    "hashtags":"",
-    "pending_post_id":"",
-    "reply_count":0,
-    "last_reply_at":0,
-    "participants":null,
-    "metadata":{
-      "embeds":[
-          {"type":"message_attachment"}
-      ]
-    }
-}
- */
+import {ERROR_COLOR, INFO_COLOR, SUCCESS_COLOR, WARNING_COLOR} from "./Utils/Colors";
+
 export class MattermostAttachmentField {
     short: boolean;
     title: string;

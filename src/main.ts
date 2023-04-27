@@ -1,16 +1,14 @@
-// Create endpoint server for jetbrains space
+import * as dotenv from "dotenv";
+dotenv.config();
 
-// Create http server
 import * as http from "http";
-import axios from "axios";
 import MattermostApi, {MattermostAttachment, MattermostMessage} from "./MattermostApi";
 
-import * as dotenv from "dotenv";
 import WebhookRequest, {IssueWebhookEvent, PingWebhookEvent} from "./SpaceApi/WebhookRequest";
 import IssueUpdated_Send from "./Messages/IssueUpdated";
 import IssueCreated_Send from "./Messages/IssueCreated";
-
-dotenv.config();
+import {banIp, isIpBanned, isLocalIp} from "./Utils/IpBanlist";
+import {ERROR_COLOR} from "./Utils/Colors";
 
 if (!process.env.MATTERMOST_SERVER_URL) {
     console.log("No mattermost server url found");
@@ -59,21 +57,49 @@ function handleIssueWebhookEvent(request: IssueWebhookEvent, response: http.Serv
 
 function createServer() {
     const server = http.createServer((req, res) => {
+        let ip = req.socket.remoteAddress;
+        if (req.headers['x-forwarded-for']) {
+            ip = req.headers['x-forwarded-for'] as string;
+        }
+
+        if(!isLocalIp(ip) && isIpBanned(ip)) {
+            res.writeHead(403, {'Content-Type': 'text/plain'});
+            res.write('Forbidden');
+            res.end();
+            return;
+        }
+
         if(!req.headers.authorization || req.headers.authorization.indexOf('Bearer ') === -1
             || req.headers.authorization.split(' ')[1] !== process.env.AUTHORIZATION_TOKEN
         ) {
-            console.log(`Blocked unauthorized request from ${req.socket.remoteAddress} using token ${req.headers.authorization}`);
-            mattermostApi.CreateMessage(
-                process.env.MATTERMOST_CHANNEL_ID,
-                `Blocked unauthorized request from ${req.socket.remoteAddress} using token ${req.headers.authorization}`
-            );
+            let message = `Blocked unauthorized request from ${ip} using token ${req.headers.authorization}`;
+            console.log(message);
+            if(process.env.REPORT_UNAUTHORIZED === "true") {
+                let mattermostMessage = new MattermostMessage();
+                mattermostMessage.channel_id = process.env.MATTERMOST_CHANNEL_ID;
+                mattermostMessage.message = message;
+                let mattermostAttachment = new MattermostAttachment();
+                mattermostAttachment.title = "Headers";
+                // headers dict to string
+                let headers = "";
+                for (let header in req.headers) {
+                    headers += `${header}: ${req.headers[header]}\n`;
+                }
+                mattermostAttachment.text = headers;
+                mattermostAttachment.color = ERROR_COLOR;
+                mattermostMessage.AddAttachment(mattermostAttachment);
+
+                mattermostApi.CreateMattermostMessage(mattermostMessage);
+            }
+
+            banIp(ip);
 
             res.writeHead(401, {'Content-Type': 'text/plain'});
             res.write('Unauthorized');
             res.end();
             return;
         }
-        // Log req body
+
         let body = '';
         req.on('data', chunk => {
             body += chunk.toString();
