@@ -1,20 +1,22 @@
-# Nodejs alpine
 FROM node:alpine
 
-# Create app directory
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV MATTERMOST_SERVER_URL=""
+ENV MATTERMOST_TOKEN=""
+ENV MATTERMOST_CHANNEL_ID=""
+ENV SPACE_URL=""
+ENV SPACE_PROJECT_ID=""
+ENV AUTHORIZATION_TOKEN=""
+
 WORKDIR /usr/src/app
 
-# Install app dependencies
 COPY package*.json ./
 
-# Install dependencies
 RUN npm install
 
-# Bundle app source
 COPY . .
 
-# Expose port
 EXPOSE 3000
 
-# Run app
 CMD [ "npm", "start" ]
