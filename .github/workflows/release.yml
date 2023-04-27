@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - run: |
+          git config --global user.email "d.hock@it-hock.de"
+          git config --global user.name "IT-Hock Automation"
       - uses: actions/checkout@v3
       - name: Install Node.js 16.x
         uses: actions/setup-node@v3
