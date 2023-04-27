@@ -140,6 +140,21 @@ function createServer() {
     let port = process.env.PORT || 3000;
     server.listen(port);
     console.log(`Server running at ${port}`);
+
+    server.on('error', (e) => {
+        console.log(e);
+        mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, "Server error: " + e);
+        process.exit(1);
+    });
+
+    process.on('uncaughtException', (e) => {
+        console.log(e);
+        mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, "Uncaught exception: " + e);
+        process.exit(1);
+    });
+
+    const packageJson = require('../package.json');
+    mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, `SpaceMattermost Bridge v${packageJson.version} started!\nPlease report any issues to https://github.com/IT-Hock/space-mattermost/issues`);
 }
 
 createServer();
