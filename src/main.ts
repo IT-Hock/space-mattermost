@@ -111,8 +111,9 @@ function createServer() {
         });
     });
 
-    server.listen(8080);
-    console.log("Server is listening on port 8080");
+    let port = process.env.PORT || 3000;
+    server.listen(port);
+    console.log(`Server running at ${port}`);
 }
 
 createServer();
