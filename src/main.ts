@@ -10,7 +10,6 @@ import IssueUpdated_Send from "./Messages/IssueUpdated";
 import IssueCreated_Send from "./Messages/IssueCreated";
 import {banIp, isIpBanned, isLocalIp} from "./Utils/IpBanlist";
 import {ERROR_COLOR} from "./Utils/Colors";
-import * as https from "https";
 import checkForNewVersion from "./Github";
 
 if (!process.env.MATTERMOST_SERVER_URL) {

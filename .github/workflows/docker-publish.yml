@@ -5,6 +5,14 @@ on:
     branches: [ "main" ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    # Allow manual triggering of the workflow.
+    inputs:
+      # Allow specifying a semver tag to publish as a release.
+      tag:
+        description: 'Tag to publish as a release'
+        required: false
+        default: ''
 
 env:
   # Use docker.io for Docker Hub if empty
