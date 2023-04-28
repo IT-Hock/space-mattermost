@@ -39,7 +39,7 @@ export default class IpBan {
 function loadIpBanlist(): IpBan[] {
     let ipBanlist: IpBan[] = [];
     if (fs.existsSync(process.env.IP_BANLIST_FILE)) {
-        ipBanlist = JSON.parse(fs.readFileSync(process.env.IP_BANLIST_FILE).toString()).map((json: any) => IpBan.fromJSON(json));
+        ipBanlist = JSON.parse(fs.readFileSync(process.env.IP_BANLIST_FILE).toString()).map((json: any) => new IpBan(json.ipAddress, json.expiration));
     }
     return ipBanlist;
 }
