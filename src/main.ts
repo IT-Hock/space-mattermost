@@ -1,4 +1,5 @@
 import * as dotenv from "dotenv";
+
 dotenv.config();
 
 import * as http from "http";
@@ -9,6 +10,8 @@ import IssueUpdated_Send from "./Messages/IssueUpdated";
 import IssueCreated_Send from "./Messages/IssueCreated";
 import {banIp, isIpBanned, isLocalIp} from "./Utils/IpBanlist";
 import {ERROR_COLOR} from "./Utils/Colors";
+import * as https from "https";
+import checkForNewVersion from "./Github";
 
 if (!process.env.MATTERMOST_SERVER_URL) {
     console.log("No mattermost server url found");
@@ -46,9 +49,9 @@ function handlePingWebhookEvent(request: PingWebhookEvent, response: http.Server
 function handleIssueWebhookEvent(request: IssueWebhookEvent, response: http.ServerResponse) {
     if (request.meta.method.toLowerCase() === "updated") {
         IssueUpdated_Send(request, response, mattermostApi);
-    }else if (request.meta.method.toLowerCase() === "created") {
+    } else if (request.meta.method.toLowerCase() === "created") {
         IssueCreated_Send(request, response, mattermostApi);
-    }else {
+    } else {
         response.writeHead(200, {'Content-Type': 'text/plain'});
         response.write('Not implemented');
         response.end();
@@ -62,19 +65,19 @@ function createServer() {
             ip = req.headers['x-forwarded-for'] as string;
         }
 
-        if(!isLocalIp(ip) && isIpBanned(ip)) {
+        if (!isLocalIp(ip) && isIpBanned(ip)) {
             res.writeHead(403, {'Content-Type': 'text/plain'});
             res.write('Forbidden');
             res.end();
             return;
         }
 
-        if(!req.headers.authorization || req.headers.authorization.indexOf('Bearer ') === -1
+        if (!req.headers.authorization || req.headers.authorization.indexOf('Bearer ') === -1
             || req.headers.authorization.split(' ')[1] !== process.env.AUTHORIZATION_TOKEN
         ) {
             let message = `Blocked unauthorized request from ${ip} using token ${req.headers.authorization}`;
             console.log(message);
-            if(process.env.REPORT_UNAUTHORIZED === "true") {
+            if (process.env.REPORT_UNAUTHORIZED === "true") {
                 let mattermostMessage = new MattermostMessage();
                 mattermostMessage.channel_id = process.env.MATTERMOST_CHANNEL_ID;
                 mattermostMessage.message = message;
@@ -89,6 +92,7 @@ function createServer() {
                 mattermostAttachment.color = ERROR_COLOR;
                 mattermostMessage.AddAttachment(mattermostAttachment);
 
+                // noinspection JSIgnoredPromiseFromCall
                 mattermostApi.CreateMattermostMessage(mattermostMessage);
             }
 
@@ -127,9 +131,10 @@ function createServer() {
                         res.end();
                         break;
                 }
-            }
-            catch (e) {
+            } catch (e) {
                 console.log(e);
+
+                // noinspection JSIgnoredPromiseFromCall
                 mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, "Uncaught exception: " + e);
                 res.writeHead(500, {'Content-Type': 'text/plain'});
                 res.write("Error: " + e + "\n\n" + body + "\n\n");
@@ -144,18 +149,33 @@ function createServer() {
 
     server.on('error', (e) => {
         console.log(e);
-        mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, "Server error: " + e);
-        process.exit(1);
+        mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, "Server error: " + e).then(() => {
+            process.exit(1);
+        });
     });
 
     process.on('uncaughtException', (e) => {
         console.log(e);
-        mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, "Uncaught exception: " + e);
-        process.exit(1);
+        mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, "Uncaught exception: " + e).then(() => {
+            process.exit(1);
+        });
     });
 
     const packageJson = require('../package.json');
+    // noinspection JSIgnoredPromiseFromCall
     mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, `SpaceMattermost Bridge v${packageJson.version} started!\nPlease report any issues to https://github.com/IT-Hock/space-mattermost/issues`);
 }
 
 createServer();
+
+setInterval(async () => {
+    let newVersion = await checkForNewVersion().catch((error) => {
+        console.log("Failed to check for new version");
+        if (process.env.REPORT_ERRORS === "true") {
+            mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, `Failed to check for new version:\n${error}`);
+        }
+    });
+    if (newVersion) {
+        await mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, `New version of SpaceMattermost Bridge available: ${newVersion}\nPlease update to the latest version!`);
+    }
+}, 1000 * 60 * 60 * 24);
