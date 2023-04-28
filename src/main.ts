@@ -130,6 +130,7 @@ function createServer() {
             }
             catch (e) {
                 console.log(e);
+                mattermostApi.CreateMessage(process.env.MATTERMOST_CHANNEL_ID, "Uncaught exception: " + e);
                 res.writeHead(500, {'Content-Type': 'text/plain'});
                 res.write("Error: " + e + "\n\n" + body + "\n\n");
                 res.end();
